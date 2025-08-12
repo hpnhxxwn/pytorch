@@ -2191,8 +2191,11 @@ class Scheduler:
             )
             self.nodes = comms.reorder_compute_and_comm_for_overlap(self.nodes)
 
-        print("torch._inductor.config.simplefsdp.bucketing_type", torch._inductor.config.simplefsdp.bucketing_type)
         if config.simplefsdp.enable_bucket_ir:
+            print(
+                "torch._inductor.config.simplefsdp.bucketing_type",
+                torch._inductor.config.simplefsdp.bucketing_type,
+            )
             has_reduce_scatter = bucket_utils.has_reduce_scatter_in_nodes(self.nodes)
             assert not config.allow_buffer_reuse, (
                 "bucketing algorithm requires torch._inductor.config.allow_buffer_reuse to be False"
@@ -2216,6 +2219,7 @@ class Scheduler:
                     "fwd_nn_module_stack",
                 )
             elif config.simplefsdp.bucketing_type == "auto":
+                #self.insert_memory_check_nodes()
                 all_gather_plan, reduce_scatter_plan = (
                     auto_bucket_plan.get_bucketing_plan(
                         self,
