@@ -769,8 +769,6 @@ def create_mapping_pre_post_grad_nodes(
         "postToPre": {},
     }
 
-    log.info("Creating node mappings for provenance tracking")
-
     if not isinstance(post_to_pre_grad_nodes_json, dict):
         log.error("Provenance tacking error: post_to_pre_grad_nodes_json is not a dict")
         return empty_return
@@ -859,8 +857,6 @@ def create_node_mapping_kernel_to_post_grad(
         "cppCodeToPost": {},
         "postToCppCode": {},
     }
-
-    log.info("Creating node mappings for provenance tracking")
 
     if not isinstance(triton_kernel_to_post_grad_json, dict):
         log.error(

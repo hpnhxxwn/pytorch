@@ -1453,11 +1453,10 @@ class SIMDScheduling(BaseScheduling):
             with V.set_kernel_handler(kernel):
                 src_code = kernel.codegen_kernel()
             kernel_name = self.define_kernel(src_code, node_schedule, kernel)
-            if config.trace.provenance_tracking:
-                set_kernel_post_grad_provenance_tracing(
-                    node_schedule,  # type: ignore[arg-type]
-                    kernel_name,
-                )
+            set_kernel_post_grad_provenance_tracing(
+                node_schedule,  # type: ignore[arg-type]
+                kernel_name,
+            )
             log.debug("Generating kernel code with kernel_name: %s", kernel_name)
             kernel.kernel_name = kernel_name
             kernel.code_hash = code_hash(src_code)
@@ -1664,10 +1663,7 @@ class SIMDScheduling(BaseScheduling):
 
             kernel.kernel_name = self.define_kernel(src_code, node_schedule, kernel)
 
-            if config.trace.provenance_tracking:
-                set_kernel_post_grad_provenance_tracing(
-                    node_schedule, kernel.kernel_name
-                )
+            set_kernel_post_grad_provenance_tracing(node_schedule, kernel.kernel_name)
 
             return kernel
 
@@ -1849,10 +1845,9 @@ class SIMDScheduling(BaseScheduling):
         for src_code, kernel, _ in kernel_code_list:
             kernel_name = self.define_kernel(src_code, [combo_kernel_node], kernel)
             # dump provenance node info for ComboKernelNode/ForeachKernel type
-            if config.trace.provenance_tracking:
-                set_kernel_post_grad_provenance_tracing(
-                    combo_kernel_node.snodes, kernel_name
-                )
+            set_kernel_post_grad_provenance_tracing(
+                combo_kernel_node.snodes, kernel_name
+            )
             self.codegen_comment([combo_kernel_node])
             log.debug("ComboKernels: generated kernel %s.", kernel_name)
             kernel.call_kernel(V.graph.wrapper_code, kernel_name)

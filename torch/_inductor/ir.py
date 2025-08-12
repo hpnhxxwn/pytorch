@@ -596,29 +596,27 @@ class IRNode:
 
         # Group nodes by their stack traces to deduplicate
         nodes_to_stack_trace = {}
-        if config.trace.provenance_tracking:
-            for node in origins:
-                if node.stack_trace:
-                    # nodes in the backward graph don't have mapping to pre_grad_graph
-                    nodes_to_stack_trace["post_grad+" + node.name] = node.stack_trace
-                else:
-                    if (
-                        "postToPre"
-                        not in torch._inductor.debug._inductor_post_to_pre_grad_nodes
-                    ):
-                        continue
-                    node_names = torch._inductor.debug._inductor_post_to_pre_grad_nodes[
-                        "postToPre"
-                    ].get(node.name, None)
-                    if node_names:
-                        for node_name in node_names:
-                            stack_trace = torch._inductor.debug._inductor_pre_grad_node_stack_trace.get(
-                                node_name, None
-                            )
-                            if stack_trace:
-                                nodes_to_stack_trace["pre_grad+" + node_name] = (
-                                    stack_trace
-                                )
+
+        for node in origins:
+            if node.stack_trace:
+                # nodes in the backward graph don't have mapping to pre_grad_graph
+                nodes_to_stack_trace["post_grad+" + node.name] = node.stack_trace
+            elif config.trace.provenance_tracking:
+                if (
+                    "postToPre"
+                    not in torch._inductor.debug._inductor_post_to_pre_grad_nodes
+                ):
+                    continue
+                node_names = torch._inductor.debug._inductor_post_to_pre_grad_nodes[
+                    "postToPre"
+                ].get(node.name, None)
+                if node_names:
+                    for node_name in node_names:
+                        stack_trace = torch._inductor.debug._inductor_pre_grad_node_stack_trace.get(
+                            node_name, None
+                        )
+                        if stack_trace:
+                            nodes_to_stack_trace["pre_grad+" + node_name] = stack_trace
 
         self._post_init_setattr("stack_traces", nodes_to_stack_trace)
 
