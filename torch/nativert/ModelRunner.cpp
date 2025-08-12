@@ -16,41 +16,19 @@ namespace torch::nativert {
 using torch::nativert::jsonToGraph;
 using torch::nativert::detail::itreeSpecLoads;
 
-namespace {
 std::shared_ptr<Weights> loadWeightsDefault(
     Graph& graph,
-    caffe2::serialize::PyTorchStreamReader& reader,
-    std::string_view modelName) {
-  auto weightsPath = fmt::format(
-      "{}{}.pt", torch::_export::archive_spec::WEIGHTS_DIR, modelName);
-  auto constantsPath = fmt::format(
-      "{}{}.pt", torch::_export::archive_spec::CONSTANTS_DIR, modelName);
-  TORCH_CHECK(
-      reader.hasRecord(weightsPath), weightsPath, " not found in package");
-  TORCH_CHECK(
-      reader.hasRecord(constantsPath), constantsPath, " not found in package");
-  const auto& [weightsData, weightsSize] = reader.getRecord(weightsPath);
-  auto weights =
-      torch::jit::pickle_load_obj(
-          std::string_view{static_cast<char*>(weightsData.get()), weightsSize})
-          .toGenericDict();
-  const auto& [constantsData, constantsSize] = reader.getRecord(constantsPath);
-  auto constants =
-      torch::jit::pickle_load_obj(
-          std::string_view{
-              static_cast<char*>(constantsData.get()), constantsSize})
-          .toGenericDict();
-  std::unordered_map<std::string, c10::IValue> stateDict;
-  std::unordered_map<std::string, c10::IValue> constantsDict;
-  for (const auto& item : weights) {
-    stateDict[item.key().toStringRef()] = item.value();
-  }
-  for (const auto& item : constants) {
-    constantsDict[item.key().toStringRef()] = item.value();
-  }
-  return std::make_shared<Weights>(&graph, stateDict, constantsDict);
+    std::shared_ptr<caffe2::serialize::PyTorchStreamReader> reader,
+    std::unordered_map<std::string, std::string> tensorPaths,
+    std::unordered_map<std::string, std::string> constantPaths) {
+  return std::make_shared<Weights>(
+      &graph,
+      reader,
+      tensorPaths,
+      torch::_export::archive_spec::WEIGHTS_DIR,
+      constantPaths,
+      torch::_export::archive_spec::CONSTANTS_DIR);
 }
-} // namespace
 
 ModelRunner::ModelRunner(
     const std::string& packagePath,
@@ -73,6 +51,9 @@ ModelRunner::ModelRunner(
 
   exportedProgram_ = nlohmann::json::parse(modelSerialized)
                          .template get<torch::_export::ExportedProgram>();
+
+  auto tensorPaths = exportedProgram_.get_tensor_paths();
+  auto constantPaths = exportedProgram_.get_constant_paths();
 
   TORCH_CHECK(exportedProgram_.get_graph_module()
                   .get_module_call_graph()[0]
@@ -104,7 +85,8 @@ ModelRunner::ModelRunner(
   graph_->applyDevicePlacement(placement);
   selectScalarOverload(graph_.get());
 
-  auto weights = loadWeightsDefault(*graph_, *pytorchStreamReader, modelName);
+  auto weights = loadWeightsDefault(
+      *graph_, pytorchStreamReader, tensorPaths, constantPaths);
 
   weights->validateAllWeightsLoaded();
 
